@@ -7,8 +7,8 @@
 #include "ocfunc.h"
 #include <cfenv>
 #include <cmath>
-#include <errno.h>
-#include <stdio.h>
+#include <cerrno>
+#include <cstdio>
 
 
 #define EPS         hoc_epsilon
@@ -70,7 +70,7 @@ double hoc1_Exp(double x) {
 }
 
 double Sqrt(double x) {
-    return errcheck(sqrt(x), "sqrt");
+    return errcheck(std::sqrt(x), "sqrt");
 }
 
 double Pow(double x, double y) {
@@ -92,14 +92,35 @@ double errcheck(double d, const char* s) /* check result of library call */
 #ifdef MINGW
     const auto errno_enabled = true;
     const auto check_fe_except = false;
+#elif __NVCOMPILER
+    const auto errno_enabled = false;
+    const auto check_fe_except = true;
+    std::cout << "errcheck: errno_enabled = " << errno_enabled << std::endl;
+    std::cout << "errcheck: check_fe_except = " << check_fe_except << std::endl;
 #else
     const auto errno_enabled = math_errhandling & MATH_ERRNO;
     const auto check_fe_except = !errno_enabled && math_errhandling & MATH_ERREXCEPT;
 #endif
+    // print errno and check FE_INVALID
+    if (errno != 0) {
+        fprintf(stderr, "%s: errno = %d\n", s, errno);
+    }
+    if (check_fe_except) {
+        if (std::fetestexcept(FE_INVALID)) {
+            fprintf(stderr, "%s: FE_INVALID\n", s);
+        }
+    }
+#ifdef  __NVCOMPILER
+    std::cout << "d : " << d << std::endl;
+#endif
     if ((errno_enabled && errno == EDOM) || (check_fe_except && std::fetestexcept(FE_INVALID))) {
-        if (check_fe_except)
+        std::cout << "errno disabled or not EDOM or FE_INVALID" << std::endl;
+        if (check_fe_except) {
             std::feclearexcept(FE_ALL_EXCEPT);
-        errno = 0;
+            errno = EDOM;
+        } else {
+            errno = 0;
+        }
         hoc_execerror(s, "argument out of domain");
     } else if ((errno_enabled && errno == ERANGE) ||
                (check_fe_except &&
