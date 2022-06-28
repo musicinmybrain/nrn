@@ -42,7 +42,6 @@ int nrnthread_dat1(int tid,
                    int*& netcon_srcgid,
                    std::vector<int>& netcon_negsrcgid_tid);
 int nrnthread_dat2_1(int tid,
-                     int& n_real_cell,
                      int& ngid,
                      int& n_real_gid,
                      int& nnode,

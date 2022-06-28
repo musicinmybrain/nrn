@@ -222,7 +222,6 @@ int nrnthread_dat1(int tid,
 
 // sizes and total data count
 int nrnthread_dat2_1(int tid,
-                     int& ncell,
                      int& ngid,
                      int& n_real_gid,
                      int& nnode,
@@ -239,7 +238,6 @@ int nrnthread_dat2_1(int tid,
     CellGroup& cg = cellgroups_[tid];
     NrnThread& nt = nrn_threads[tid];
 
-    ncell = cg.n_real_cell;
     ngid = cg.n_output;
     n_real_gid = cg.n_real_output;
     nnode = nt.end;
@@ -290,7 +288,7 @@ int nrnthread_dat2_2(int tid,
     CellGroup& cg = cellgroups_[tid];
     NrnThread& nt = nrn_threads[tid];
 
-    assert(cg.n_real_cell == nt.ncell);
+    assert(cg.n_real_output == nt.ncell);
 
     // If direct transfer, copy, because target space already allocated
     bool copy = corenrn_direct;
