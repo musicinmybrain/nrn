@@ -45,6 +45,7 @@ class IvocVect {
             notify_freed_val_array(vec_.data(), vec_.size());
         }
         vec_.resize(n);
+        vec_.shrink_to_fit();
     }
 
     inline void resize(size_t n, double fill_value) {
