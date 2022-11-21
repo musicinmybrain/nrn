@@ -294,52 +294,58 @@ static void pyobject_in_objptr(Object** op, PyObject* po) {
 }
 
 static PyObject* hocobj_name(PyObject* pself, PyObject* args) {
-    PyHocObject* self = (PyHocObject*) pself;
-    char buf[512], *cp;
-    buf[0] = '\0';
-    cp = buf;
-    PyObject* po;
+    auto* const self = reinterpret_cast<PyHocObject*>(pself);
+    std::string cp;
     if (self->type_ == PyHoc::HocObject) {
-        sprintf(cp, "%s", hoc_object_name(self->ho_));
+        cp = hoc_object_name(self->ho_);
     } else if (self->type_ == PyHoc::HocFunction || self->type_ == PyHoc::HocArray) {
-        sprintf(cp,
-                "%s%s%s",
-                self->ho_ ? hoc_object_name(self->ho_) : "",
-                self->ho_ ? "." : "",
-                self->sym_->name);
+        if (self->ho_) {
+            cp.append(hoc_object_name(self->ho_));
+            cp.append(1, '.');
+        }
+        cp.append(self->sym_->name);
         if (self->type_ == PyHoc::HocArray) {
             for (int i = 0; i < self->nindex_; ++i) {
-                sprintf(cp += strlen(cp), "[%d]", self->indices_[i]);
+                cp.append(1, '[');
+                cp.append(std::to_string(self->indices_[i]));
+                cp.append(1, ']');
             }
-            sprintf(cp += strlen(cp), "[?]");
+            cp.append("[?]");
         } else {
-            sprintf(cp += strlen(cp), "()");
+            cp.append("()");
         }
     } else if (self->type_ == PyHoc::HocRefNum) {
-        sprintf(cp, "<hoc ref value %g>", self->u.x_);
+        cp.append("<hoc ref value ");
+        cp.append(std::to_string(self->u.x_));
+        cp.append(1, '>');
     } else if (self->type_ == PyHoc::HocRefStr) {
-        sprintf(cp, "<hoc ref str \"%s\">", self->u.s_);
+        cp.append("<hoc ref str \"");
+        cp.append(self->u.s_);
+        cp.append("\">");
     } else if (self->type_ == PyHoc::HocRefPStr) {
-        sprintf(cp, "<hoc ref pstr \"%s\">", *self->u.pstr_);
+        cp.append("<hoc ref pstr \"");
+        cp.append(*self->u.pstr_);
+        cp.append("\">");
     } else if (self->type_ == PyHoc::HocRefObj) {
-        sprintf(cp, "<hoc ref value \"%s\">", hoc_object_name(self->u.ho_));
+        cp.append("<hoc ref value \"");
+        cp.append(hoc_object_name(self->u.ho_));
+        cp.append("\">");
     } else if (self->type_ == PyHoc::HocForallSectionIterator) {
-        sprintf(cp, "<all section iterator next>");
+        cp.append("<all section iterator next>");
     } else if (self->type_ == PyHoc::HocSectionListIterator) {
-        sprintf(cp, "<SectionList iterator>");
+        cp.append("<SectionList iterator>");
     } else if (self->type_ == PyHoc::HocScalarPtr) {
-        if (self->u.px_) {
-            sprintf(cp, "<pointer to hoc scalar %g>", *self->u.px_);
-        } else {
-            sprintf(cp, "<pointer to hoc scalar (Invalid)>");
-        }
+        std::ostringstream oss;
+        oss << self->u.px_;
+        cp = std::move(oss).str();
     } else if (self->type_ == PyHoc::HocArrayIncomplete) {
-        sprintf(cp, "<incomplete pointer to hoc array %s>", self->sym_->name);
+        cp.append("<incomplete pointer to hoc array ");
+        cp.append(self->sym_->name);
+        cp.append(1, '>');
     } else {
-        sprintf(cp, "<TopLevelHocInterpreter>");
+        cp.append("<TopLevelHocInterpreter>");
     }
-    po = Py_BuildValue("s", buf);
-    return po;
+    return Py_BuildValue("s", cp.c_str());
 }
 
 static PyObject* hocobj_repr(PyObject* p) {
