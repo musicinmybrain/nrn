@@ -389,7 +389,6 @@ set(SCOPMATH_FILES_LIST
     crank.cpp
     crout.cpp
     deflate.cpp
-    dimplic.cpp
     scoperf.cpp
     euler.cpp
     expfit.cpp
