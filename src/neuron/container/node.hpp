@@ -133,38 +133,37 @@ struct handle_interface: handle_base<Identifier> {
         return v();
     }
 
-    // Change following for rhs
-    /** @brief Set the membrane potential.
+    /** @brief Set the right hand side of the Hines solver.
      */
-    void set_v(field::RHS::type v) {
-        this->template get<field::RHS>() = v;
+    void set_v(field::RHS::type rhs) {
+        this->template get<field::RHS>() = rhs;
     }
 
     /**
-     * @brief Return the membrane potential.
+     * @brief Return the right hand side of the Hines solver.
      */
-    [[nodiscard]] field::RHS::type& v() {
+    [[nodiscard]] field::RHS::type& rhs() {
         return this->template get<field::RHS>();
     }
 
     /**
-     * @brief Return the membrane potential.
+     * @brief Return the right hand side of the Hines solver.
      */
-    [[nodiscard]] field::RHS::type const& v() const {
+    [[nodiscard]] field::RHS::type const& rhs() const {
         return this->template get<field::RHS>();
     }
 
     /**
-     * @brief Return a handle to the membrane potential.
+     * @brief Return a handle to tthe right hand side of the Hines solver.
      */
-    [[nodiscard]] data_handle<field::RHS::type> v_handle() {
+    [[nodiscard]] data_handle<field::RHS::type> rhs_handle() {
         return this->template get_handle<field::RHS>();
     }
 
-    /** @brief Set the membrane potential.
+    /** @brief Set the right hand side of the Hines solver.
      */
-    void set_v(field::RHS::type v) {
-        this->template get<field::RHS>() = v;
+    void set_v(field::RHS::type rhs) {
+        this->template get<field::RHS>() = rhs;
     }
 };
 }  // namespace neuron::container::Node
