@@ -33,7 +33,7 @@ def test_simple_sim():
     ic.delay = 0.5
     ic.dur = 0.1
     ic.amp = 0.3
-
+    h.finitialize()
     v = h.Vector()
     v.record(h.soma(0.5)._ref_v, sec=h.soma)
     tv = h.Vector()
@@ -427,11 +427,4 @@ def test_recording_deleted_node():
 
 if __name__ == "__main__":
     set_quiet(False)
-    test_soma()
     test_simple_sim()
-    test_deleted_sec()
-    test_disconnect()
-    h.topology()
-    h.allobjects()
-    test_nosection()
-    test_nrn_mallinfo()

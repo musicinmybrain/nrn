@@ -27,6 +27,15 @@ struct Voltage {
         return DEF_vrest;
     }
 };
+
+struct RHS {
+    using type = double;
+    // Not needed for 0
+    // constexpr type default_value() const {
+    //     return 0.0;
+    // }
+};
+
 }  // namespace field
 
 /**
@@ -124,10 +133,38 @@ struct handle_interface: handle_base<Identifier> {
         return v();
     }
 
+    // Change following for rhs
     /** @brief Set the membrane potential.
      */
-    void set_v(field::Voltage::type v) {
-        this->template get<field::Voltage>() = v;
+    void set_v(field::RHS::type v) {
+        this->template get<field::RHS>() = v;
+    }
+
+    /**
+     * @brief Return the membrane potential.
+     */
+    [[nodiscard]] field::RHS::type& v() {
+        return this->template get<field::RHS>();
+    }
+
+    /**
+     * @brief Return the membrane potential.
+     */
+    [[nodiscard]] field::RHS::type const& v() const {
+        return this->template get<field::RHS>();
+    }
+
+    /**
+     * @brief Return a handle to the membrane potential.
+     */
+    [[nodiscard]] data_handle<field::RHS::type> v_handle() {
+        return this->template get_handle<field::RHS>();
+    }
+
+    /** @brief Set the membrane potential.
+     */
+    void set_v(field::RHS::type v) {
+        this->template get<field::RHS>() = v;
     }
 };
 }  // namespace neuron::container::Node

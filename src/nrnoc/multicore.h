@@ -100,7 +100,12 @@ struct NrnThread {
             _node_data_offset + row);
     }
 
-    double* _actual_rhs;
+    double& actual_rhs(std::size_t row) {
+        assert(neuron::model().node_data().is_sorted());
+        return neuron::model().node_data().get<neuron::container::Node::field::RHS>(
+            _node_data_offset + row);
+    }
+
     double* _actual_d;
     double* _actual_a;
     double* _actual_b;

@@ -209,7 +209,6 @@ Item* mixed_eqns(Item* q2, Item* q3, Item* q4) /* name, '{', '}' */
             "error = newton<%d>(_slist%d, %s, _dlist%d, _ml, _iml);\n",
             counts,
             numlist,
-            SYM(q2)->name,
             numlist);
     qret = insertstr(q3, buf);
     Sprintf(buf,
