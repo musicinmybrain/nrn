@@ -171,18 +171,11 @@ struct Node {
     [[nodiscard]] auto const& rhs() const {
         return _node_handle.rhs();
     }
-    // since rhs is not a macro those are not needed
-    // [[nodiscard]] auto& v_hack() {
-    //     return _node_handle.v_hack();
-    // }
-    // [[nodiscard]] auto const& v_hack() const {
-    //     return _node_handle.v_hack();
-    }
     [[nodiscard]] auto rhs_handle() {
         return _node_handle.rhs_handle();
     }
-    void set_v(neuron::container::Node::field::Voltage::type v) {
-        _node_handle.set_v(v);
+    void set_rhs(neuron::container::Node::field::RHS::type rhs) {
+        _node_handle.set_rhs(rhs);
     }
     // ==============================
     double _rinv{}; /* conductance uS from node to parent */

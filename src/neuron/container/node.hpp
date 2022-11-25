@@ -135,8 +135,8 @@ struct handle_interface: handle_base<Identifier> {
 
     /** @brief Set the right hand side of the Hines solver.
      */
-    void set_v(field::RHS::type rhs) {
-        this->template get<field::RHS>() = rhs;
+    void set_v(field::Voltage::type v) {
+        this->template get<field::Voltage>() = v;
     }
 
     /**
@@ -154,7 +154,7 @@ struct handle_interface: handle_base<Identifier> {
     }
 
     /**
-     * @brief Return a handle to tthe right hand side of the Hines solver.
+     * @brief Return a handle to the right hand side of the Hines solver.
      */
     [[nodiscard]] data_handle<field::RHS::type> rhs_handle() {
         return this->template get_handle<field::RHS>();
@@ -162,7 +162,7 @@ struct handle_interface: handle_base<Identifier> {
 
     /** @brief Set the right hand side of the Hines solver.
      */
-    void set_v(field::RHS::type rhs) {
+    void set_rhs(field::RHS::type rhs) {
         this->template get<field::RHS>() = rhs;
     }
 };
