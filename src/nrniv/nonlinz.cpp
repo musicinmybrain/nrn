@@ -33,7 +33,7 @@ class NonLinImpRep {
     int scnt_;  // structure_change
     int n_v_, n_ext_, n_lin_, n_ode_, neq_v_, neq_;
     std::vector<neuron::container::data_handle<double>> pv_;
-    double** pvdot_;
+    std::vector<neuron::container::data_handle<double>> pvdot_;
     int* v_index_;
     double* rv_;
     double* jv_;
@@ -249,7 +249,7 @@ NonLinImpRep::NonLinImpRep() {
     m_ = cmplx_spCreate(neq_, 1, &err);
     assert(err == spOKAY);
     pv_.resize(neq_);
-    pvdot_ = new double*[neq_];
+    pvdot_.resize(neq_);
     v_index_ = new int[n_v_];
     rv_ = new double[neq_ + 1];
     rv_ += 1;
@@ -262,7 +262,7 @@ NonLinImpRep::NonLinImpRep() {
         // utilize nd->eqn_index in case of use_sparse13 later
         Node* nd = _nt->_v_node[i];
         pv_[i] = nd->v_handle();
-        pvdot_[i] = nd->_rhs;
+        pvdot_[i] = nd->rhs_handle();
         v_index_[i] = i + 1;
     }
     for (i = 0; i < n_v_; ++i) {
@@ -279,7 +279,6 @@ NonLinImpRep::~NonLinImpRep() {
         return;
     }
     cmplx_spDestroy(m_);
-    delete[] pvdot_;
     delete[] v_index_;
     delete[](rv_ - 1);
     delete[](jv_ - 1);
@@ -299,6 +298,11 @@ void NonLinImpRep::delta(double deltafac) {  // also defines pv_,pvdot_ map for 
         return static_cast<double*>(handle);
     });
     auto const pv_raw_ptrs_prev = pv_raw_ptrs;
+    std::vector<double*> pvdot_raw_ptrs;
+    std::transform(pvdot_.begin(), pvdot_.end(), std::back_inserter(pvdot_raw_ptrs), [](auto& handle) {
+        return static_cast<double*>(handle);
+    });
+    auto const pvdot_raw_ptrs_prev = pvdot_raw_ptrs;
     for (NrnThreadMembList* tml = nt->tml; tml; tml = tml->next) {
         Memb_list* ml = tml->ml;
         i = tml->index;
@@ -309,7 +313,7 @@ void NonLinImpRep::delta(double deltafac) {  // also defines pv_,pvdot_ map for 
             for (j = 0; j < nc; ++j) {
                 (*m)(ieq,
                      pv_raw_ptrs.data() + ieq,
-                     pvdot_ + ieq,
+                     pvdot_raw_ptrs.data() + ieq,
                      ml,
                      j,
                      ml->pdata[j],
@@ -323,6 +327,12 @@ void NonLinImpRep::delta(double deltafac) {  // also defines pv_,pvdot_ map for 
     for (auto i = 0ul; i < pv_raw_ptrs.size(); ++i) {
         if (pv_raw_ptrs[i] != pv_raw_ptrs_prev[i]) {
             pv_[i] = pv_raw_ptrs[i];
+        }
+    }
+    // pvdot_raw_ptrs may have been modified, propagate the modifications back
+    for (auto i = 0ul; i < pvdot_raw_ptrs.size(); ++i) {
+        if (pvdot_raw_ptrs[i] != pvdot_raw_ptrs_prev[i]) {
+            pvdot_[i] = pvdot_raw_ptrs[i];
         }
     }
     delta_ = (vsymtol_ && (*vsymtol_ != 0.)) ? *vsymtol_ : 1.;

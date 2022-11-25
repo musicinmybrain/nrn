@@ -88,6 +88,13 @@ struct NrnThread {
             _node_data_offset);
     }
 
+    double* node_rhs_storage() {
+        // Need to be able to use this method while the model is frozen, so
+        // avoid calling the zero-parameter get()
+        return &neuron::model().node_data().get<neuron::container::Node::field::RHS>(
+            _node_data_offset);
+    }
+
     double& actual_area(std::size_t row) {
         assert(neuron::model().node_data().is_sorted());
         return neuron::model().node_data().get<neuron::container::Node::field::Area>(

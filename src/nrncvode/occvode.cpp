@@ -161,11 +161,11 @@ void Cvode::init_eqn() {
         z.nonvint_extra_offset_ = zneq;
         if (!z.pv_.empty()) {
             z.pv_.clear();
-            delete[] std::exchange(z.pvdot_, nullptr);
+            z.pvdot_.clear();
         }
         if (z.nonvint_extra_offset_) {
             z.pv_.resize(z.nonvint_extra_offset_);
-            z.pvdot_ = new double*[z.nonvint_extra_offset_];
+            z.pvdot_.resize(z.nonvint_extra_offset_);
         }
         zneq += nrn_nonvint_block_ode_count(zneq, _nt->id);
         z.nvsize_ = zneq;
@@ -261,6 +261,9 @@ printf("%d Cvode::init_eqn id=%d neq_v_=%d #nonvint=%d #nonvint_extra=%d nvsize=
         auto pv_raw_ptrs = z.raw_pv_pointers();
         auto const pv_raw_ptrs_prev = pv_raw_ptrs;
         assert(pv_raw_ptrs.size() == z.pv_.size());
+        auto pvdot_raw_ptrs = z.raw_pv_pointers();
+        auto const pvdot_raw_ptrs_prev = pvdot_raw_ptrs;
+        assert(pvdot_raw_ptrs.size() == z.pvdot_.size());
         for (cml = z.cv_memb_list_; cml; cml = cml->next) {
             mf = memb_func + cml->index;
             if (!mf->ode_count) {
@@ -277,7 +280,7 @@ printf("%d Cvode::init_eqn id=%d neq_v_=%d #nonvint=%d #nonvint_extra=%d nvsize=
                     for (j = 0; j < ml.nodecount; ++j) {
                         mf->ode_map(ieq,
                                     pv_raw_ptrs.data() + ieq,
-                                    z.pvdot_ + ieq,
+                                    pvdot_raw_ptrs.data() + ieq,
                                     &ml,
                                     j,
                                     ml.pdata[j],
@@ -292,6 +295,12 @@ printf("%d Cvode::init_eqn id=%d neq_v_=%d #nonvint=%d #nonvint_extra=%d nvsize=
         for (auto i = 0ul; i < pv_raw_ptrs.size(); ++i) {
             if (pv_raw_ptrs[i] != pv_raw_ptrs_prev[i]) {
                 z.pv_[i] = pv_raw_ptrs[i];
+            }
+        }
+        // pvdot_raw_ptrs may have been modified, propagate the modifications back
+        for (auto i = 0ul; i < pvdot_raw_ptrs.size(); ++i) {
+            if (pvdot_raw_ptrs[i] != pvdot_raw_ptrs_prev[i]) {
+                z.pvdot_[i] = pvdot_raw_ptrs[i];
             }
         }
         nrn_nonvint_block_ode_abstol(z.nvsize_, atv, id);
@@ -400,10 +409,10 @@ void Cvode::daspk_init_eqn() {
     // printf("Cvode::daspk_init_eqn: neq_v_=%d neq_=%d\n", neq_v_, neq_);
     if (!z.pv_.empty()) {
         z.pv_.clear();
-        delete[] z.pvdot_;
+        z.pvdot_.clear();
     }
     z.pv_.resize(z.nonvint_extra_offset_);
-    z.pvdot_ = new double*[z.nonvint_extra_offset_];
+    z.pvdot_.resize(z.nonvint_extra_offset_);
     atolvec_alloc(neq_);
     double* atv = n_vector_data(atolnvec_, 0);
     for (i = 0; i < neq_; ++i) {
@@ -431,7 +440,7 @@ void Cvode::daspk_init_eqn() {
             nde = nd->extnode;
             i = nd->eqn_index_ - 1;  // the sparse matrix index starts at 1
             z.pv_[i] = nd->v_handle();
-            z.pvdot_[i] = nd->_rhs;
+            z.pvdot_[i] = nd->rhs_handle();
             if (nde) {
                 for (ie = 0; ie < nlayer; ++ie) {
                     k = i + ie + 1;
@@ -451,6 +460,8 @@ void Cvode::daspk_init_eqn() {
     // convert data_handle<double> -> double* for calling nrn_ode_map_t below
     auto pv_raw_ptrs = z.raw_pv_pointers();
     auto const pv_raw_ptrs_prev = pv_raw_ptrs;
+    auto pvdot_raw_ptrs = z.raw_pv_pointers();
+    auto const pvdot_raw_ptrs_prev = pvdot_raw_ptrs;
     for (cml = z.cv_memb_list_; cml; cml = cml->next) {
         int n;
         mf = memb_func + cml->index;
@@ -462,7 +473,7 @@ void Cvode::daspk_init_eqn() {
             for (j = 0; j < ml->nodecount; ++j) {
                 (*s)(ieq,
                      pv_raw_ptrs.data() + ieq,
-                     z.pvdot_ + ieq,
+                     pvdot_raw_ptrs.data() + ieq,
                      ml,
                      j,
                      ml->pdata[j],
@@ -476,6 +487,12 @@ void Cvode::daspk_init_eqn() {
     for (auto i = 0ul; i < pv_raw_ptrs.size(); ++i) {
         if (pv_raw_ptrs[i] != pv_raw_ptrs_prev[i]) {
             z.pv_[i] = pv_raw_ptrs[i];
+        }
+    }
+    // pvdot_raw_ptrs may have been modified, propagate the modifications back
+    for (auto i = 0ul; i < pvdot_raw_ptrs.size(); ++i) {
+        if (pvdot_raw_ptrs[i] != pvdot_raw_ptrs_prev[i]) {
+            z.pvdot_[i] = pvdot_raw_ptrs[i];
         }
     }
     structure_change_ = false;
