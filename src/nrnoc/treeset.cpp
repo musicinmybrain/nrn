@@ -371,7 +371,7 @@ void nrn_rhs(neuron::model_sorted_token const& cache_token, NrnThread& nt) {
         nrn_thread_error("nrn_rhs use_sparse13");
         neqn = spGetSize(_nt->_sp13mat, 0);
         for (i = 1; i <= neqn; ++i) {
-            _nt->_actual_rhs[i] = 0.;
+            _nt->actual_rhs(i) = 0.;
         }
     } else {
 #if CACHEVEC
@@ -618,7 +618,7 @@ void setup_tree_matrix(neuron::model_sorted_token const& cache_token, NrnThread&
     nrn::Instrumentor::phase _{"setup-tree-matrix"};
     nrn_rhs(cache_token, nt);
     nrn_lhs(&nt);
-    nrn_nonvint_block_current(nt.end, nt._actual_rhs, nt.id);
+    nrn_nonvint_block_current(nt.end, nt.node_rhs_storage(), nt.id);
     nrn_nonvint_block_conductance(nt.end, nt._actual_d, nt.id);
 }
 
@@ -1880,10 +1880,6 @@ void node_data(void) {
 void nrn_matrix_node_free() {
     NrnThread* nt;
     FOR_THREADS(nt) {
-        if (nt->_actual_rhs) {
-            free(nt->_actual_rhs);
-            nt->_actual_rhs = (double*) 0;
-        }
         if (nt->_actual_d) {
             free(nt->_actual_d);
             nt->_actual_d = (double*) 0;
@@ -1995,7 +1991,7 @@ static void nrn_matrix_node_alloc(void) {
             v_setup_vectors();
             return;
         } else {
-            if (nt->_actual_rhs != (double*) 0) {
+            if (nt->node_rhs_storage() != nullptr) {
                 return;
             }
         }

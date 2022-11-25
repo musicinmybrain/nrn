@@ -83,7 +83,15 @@ class CvodeThreadData {
         assert(ret.size() == pv_.size());
         return ret;
     }
-    double** pvdot_;
+    std::vector<neuron::container::data_handle<double>> pvdot_;
+    [[nodiscard]] std::vector<double*> raw_pvdot_pointers() {
+        std::vector<double*> ret{};
+        std::transform(pvdot_.begin(), pvdot_.end(), std::back_inserter(ret), [](auto& handle) {
+            return static_cast<double*>(handle);
+        });
+        assert(pvdot_.size() == pvdot_.size());
+        return ret;
+    }
     int nvoffset_;              // beginning of this threads states
     int nvsize_;                // total number of states for this thread
     int neq_v_;                 // for daspk, number of voltage states for this thread
