@@ -582,9 +582,6 @@ endif()
 # ~~~
 target_link_libraries(coreneuron-core PUBLIC ${CMAKE_DL_LIBS})
 
-# Enable TABLE expression in hh.mod on CPU builds
-add_dependencies(coreneuron-core hh_update_corenrn)
-
 # this is where we handle dynamic mpi library build
 if(CORENRN_ENABLE_MPI AND CORENRN_ENABLE_MPI_DYNAMIC)
   # store mpi library targets that will be built
@@ -690,12 +687,12 @@ add_custom_command(
           ${CORENRN_MOD2CPP_BINARY} -n "internal" -p 4 "."
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   COMMENT "Running nrnivmodl-core with internal mod files")
-add_custom_target(nrniv-core ALL DEPENDS ${output_binaries})
+add_custom_target(nrniv-core ALL DEPENDS ${output_binaries} hh_update_corenrn)
 
 # Build a target representing the libcorenrnmech_internal.so that is produced under bin/x86_64,
 # which executables such as the unit tests must link against
 add_library(builtin-libcorenrnmech SHARED IMPORTED)
-add_dependencies(builtin-libcorenrnmech nrniv-core)
+
 set_target_properties(builtin-libcorenrnmech PROPERTIES IMPORTED_LOCATION "${corenrn_mech_library}")
 
 if(CORENRN_ENABLE_GPU)
