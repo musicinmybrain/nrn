@@ -13,7 +13,7 @@ FetchContent_Declare(
 FetchContent_Declare(
   testcorenrn
   GIT_REPOSITORY https://github.com/neuronsimulator/testcorenrn
-  GIT_TAG 014aab9bee60a2bdd44b28a784c88092d2f6b92b
+  GIT_TAG eb463ccb412a42eb9a009df8a451b75c3bd1ea44
   SOURCE_DIR ${PROJECT_SOURCE_DIR}/external/tests/testcorenrn)
 
 FetchContent_Declare(
