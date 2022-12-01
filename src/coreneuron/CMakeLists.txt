@@ -303,6 +303,30 @@ if(MINGW)
 endif()
 
 # =============================================================================
+# ~~~
+# Update hh.mod for CoreNEURON GPU compatibility
+# - Comment out TABLE if GPU is enabled
+# ~~~
+# =============================================================================
+if(CORENRN_ENABLE_GPU)
+  set(TABLE_VAR_TOGGLE_COMMAND "'s/ TABLE minf/ :TABLE minf/'")
+else()
+  set(TABLE_VAR_TOGGLE_COMMAND "'s/ :TABLE minf/ TABLE minf/'")
+endif()
+separate_arguments(TABLE_VAR_TOGGLE_COMMAND UNIX_COMMAND "${TABLE_VAR_TOGGLE_COMMAND}")
+add_custom_target(
+  hh_update_corenrn
+  COMMAND
+    sed ${TABLE_VAR_TOGGLE_COMMAND}
+    ${CORENEURON_PROJECT_SOURCE_DIR}/coreneuron/mechanism/mech/modfile/hh.mod >
+    ${CMAKE_BINARY_DIR}/hh.mod.coreneuron.1
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_BINARY_DIR}/hh.mod.coreneuron.1
+          ${CORENEURON_PROJECT_SOURCE_DIR}/coreneuron/mechanism/mech/modfile/hh.mod
+  COMMAND ${CMAKE_COMMAND} -E remove ${CMAKE_BINARY_DIR}/hh.mod.coreneuron.1
+  COMMENT "Update hh.mod for CoreNEURON GPU compatibility"
+  VERBATIM)
+
+# =============================================================================
 # NMODL specific options
 # =============================================================================
 if(CORENRN_ENABLE_NMODL)
@@ -557,6 +581,9 @@ endif()
 #   https://github.com/neuronsimulator/nrn-build-ci/pull/51
 # ~~~
 target_link_libraries(coreneuron-core PUBLIC ${CMAKE_DL_LIBS})
+
+# Enable TABLE expression in hh.mod on CPU builds
+add_dependencies(coreneuron-core hh_update_corenrn)
 
 # this is where we handle dynamic mpi library build
 if(CORENRN_ENABLE_MPI AND CORENRN_ENABLE_MPI_DYNAMIC)
