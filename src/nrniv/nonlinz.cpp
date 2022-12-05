@@ -332,7 +332,7 @@ void NonLinImpRep::delta(double deltafac) {  // also defines pv_,pvdot_ map for 
     // pvdot_raw_ptrs may have been modified, propagate the modifications back
     for (auto i = 0ul; i < pvdot_raw_ptrs.size(); ++i) {
         if (pvdot_raw_ptrs[i] != pvdot_raw_ptrs_prev[i]) {
-            pvdot_[i] = pvdot_raw_ptrs[i];
+            pvdot_[i] = neuron::container::data_handle<double>{pvdot_raw_ptrs[i]};
         }
     }
     delta_ = (vsymtol_ && (*vsymtol_ != 0.)) ? *vsymtol_ : 1.;
