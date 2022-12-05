@@ -332,7 +332,7 @@ void CellGroup::datumindex_fill(int ith, CellGroup& cg, DatumIndices& di, Memb_l
             } else if (dmap[j] == -5) {  // POINTER
                 // must be a pointer into nt->_data. Handling is similar to eion so
                 // give proper index into the type.
-                double* pd = dparam[j].get<double*>();
+                neuron::container::data_handle<double> pd{dparam[j].get<double*>()};
                 nrn_dblpntr2nrncore(pd, nt, etype, eindex);
                 if (etype == 0) {
                     fprintf(stderr,
@@ -355,7 +355,7 @@ void CellGroup::datumindex_fill(int ith, CellGroup& cg, DatumIndices& di, Memb_l
                 eindex = *dparam[j].get<int*>();
             } else {
                 char errmes[100];
-                sprintf(errmes, "Unknown semantics type %d for dparam item %d of", dmap[j], j);
+                Sprintf(errmes, "Unknown semantics type %d for dparam item %d of", dmap[j], j);
                 hoc_execerror(errmes, memb_func[di.type].sym->name);
             }
             di.ion_type[offset + j] = etype;

@@ -17,7 +17,7 @@
 int (*nrn2core_get_dat1_)(int tid,
                           int& n_presyn,
                           int& n_netcon,
-                          int*& output_gid,
+                          std::vector<int>& output_gid,
                           int*& netcon_srcgid,
                           std::vector<int>& netcon_negsrcgid_tid);
 
@@ -36,7 +36,6 @@ Phase1::Phase1(FileHandler& F) {
 }
 
 Phase1::Phase1(int thread_id) {
-    int* output_gids;
     int* netcon_srcgid;
     int n_presyn;
     int n_netcon;
@@ -47,9 +46,7 @@ Phase1::Phase1(int thread_id) {
     if (!valid) {
         return;
     }
-
-    this->output_gids = std::vector<int>(output_gids, output_gids + n_presyn);
-    delete[] output_gids;
+    assert(output_gids.size() == n_presyn);
     this->netcon_srcgids = std::vector<int>(netcon_srcgid, netcon_srcgid + n_netcon);
     delete[] netcon_srcgid;
 }
@@ -92,16 +89,17 @@ void Phase1::populate(NrnThread& nt, OMP_Mutex& mut) {
             /// Put gid into the gid2out hash table with correspondent output PreSyn
             /// Or to the negative PreSyn map
             if (gid >= 0) {
-                char m[200];
                 if (gid2in.find(gid) != gid2in.end()) {
-                    sprintf(m, "gid=%d already exists as an input port", gid);
-                    hoc_execerror(m,
+                    auto const m = "gid=" + std::to_string(gid) +
+                                   " already exists as an input port";
+                    hoc_execerror(m.c_str(),
                                   "Setup all the output ports on this process before using them as "
                                   "input ports.");
                 }
                 if (gid2out.find(gid) != gid2out.end()) {
-                    sprintf(m, "gid=%d already exists on this process as an output port", gid);
-                    hoc_execerror(m, 0);
+                    auto const m = "gid=" + std::to_string(gid) +
+                                   " already exists on this process as an output port";
+                    hoc_execerror(m.c_str(), nullptr);
                 }
                 ps->gid_ = gid;
                 ps->output_index_ = gid;

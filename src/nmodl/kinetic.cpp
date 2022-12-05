@@ -224,7 +224,7 @@ void flux(Item* qREACTION, Item* qdir, Item* qlast) {
                             if (sr == rterm->sym) {
                                 c1 = qconcat(qdir->next->next, q->prev);
                                 c2 = qconcat(q->next, qlast);
-                                sprintf(buf,
+                                Sprintf(buf,
                                         "nrn_nernst_coef(_type_%s)*(%s _ion_d%sdv %s)",
                                         s->name,
                                         c1,
@@ -657,9 +657,9 @@ void kinetic_implicit(Symbol* fun, const char* dt, const char* mname) {
         ncons = 0;
         Sprintf(buf, "static void* _cvsparseobj%d;\n", fun->u.i);
         q = linsertstr(procfunc, buf);
-        sprintf(buf, "static int _cvspth%d = %d;\n", fun->u.i, thread_data_index++);
+        Sprintf(buf, "static int _cvspth%d = %d;\n", fun->u.i, thread_data_index++);
         vectorize_substitute(q, buf);
-        sprintf(buf,
+        Sprintf(buf,
                 "  "
                 "_nrn_destroy_sparseobj_thread(static_cast<SparseObj*>(_thread[_cvspth%d].get<void*"
                 ">()));\n",
@@ -688,9 +688,9 @@ void kinetic_implicit(Symbol* fun, const char* dt, const char* mname) {
             Lappendsym(done_list1, fun);
             Sprintf(buf, "static void* _sparseobj%d;\n", fun->u.i);
             q = linsertstr(procfunc, buf);
-            sprintf(buf, "static int _spth%d = %d;\n", fun->u.i, thread_data_index++);
+            Sprintf(buf, "static int _spth%d = %d;\n", fun->u.i, thread_data_index++);
             vectorize_substitute(q, buf);
-            sprintf(buf,
+            Sprintf(buf,
                     "  "
                     "_nrn_destroy_sparseobj_thread(static_cast<SparseObj*>(_thread[_spth%d].get<"
                     "void*>()));\n",
@@ -1365,9 +1365,9 @@ void cvode_kinetic(Item* qsol, Symbol* fun, int numeqn, int listnum) {
         }
     kinetic_intmethod(fun, "NEURON's CVode");
     Lappendstr(procfunc, "\n/*CVODE ode begin*/\n");
-    sprintf(buf, "static int _ode_spec%d() {_reset=0;{\n", fun->u.i);
+    Sprintf(buf, "static int _ode_spec%d() {_reset=0;{\n", fun->u.i);
     Lappendstr(procfunc, buf);
-    sprintf(buf,
+    Sprintf(buf,
             "static int _ode_spec%d(_threadargsproto_) {\n"
             "  int _reset=0;\n"
             "  {\n",
@@ -1376,9 +1376,9 @@ void cvode_kinetic(Item* qsol, Symbol* fun, int numeqn, int listnum) {
     copyitems(cvode_sbegin, cvode_send, procfunc->prev);
 
     Lappendstr(procfunc, "\n/*CVODE matsol*/\n");
-    sprintf(buf, "static int _ode_matsol%d() {_reset=0;{\n", fun->u.i);
+    Sprintf(buf, "static int _ode_matsol%d() {_reset=0;{\n", fun->u.i);
     Lappendstr(procfunc, buf);
-    sprintf(buf,
+    Sprintf(buf,
             "static int _ode_matsol%d(void* _so, double* _rhs, Datum* _ppvar, Datum* "
             "_thread, NrnThread* _nt, Memb_list* _ml, size_t _iml) {int _reset=0;{\n",
             fun->u.i);

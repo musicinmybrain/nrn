@@ -57,12 +57,27 @@ struct generic_data_handle {
      */
     generic_data_handle(std::nullptr_t) {}
 
-    /** @brief Construct a generic data handle that holds a small literal value.
+    /**
+     * @brief Construct a generic data handle that holds a small literal value.
+     *
+     * This is explicit to avoid things like operator<<(ostream&, generic_data_handle const&) being
+     * considered when printing values like size_t.
      */
     template <typename T, std::enable_if_t<can_be_stored_literally_v<T>, int> = 0>
-    generic_data_handle(T value)
+    explicit generic_data_handle(T value)
         : m_type{&typeid(T)} {
         std::memcpy(&m_container, &value, sizeof(T));
+    }
+
+    /**
+     * @brief Assign a small literal value to a generic data handle.
+     *
+     * This is important when generic_data_handle is used as the Datum type for "pointer" variables
+     * in MOD files.
+     */
+    template <typename T, std::enable_if_t<can_be_stored_literally_v<T>, int> = 0>
+    generic_data_handle& operator=(T value) {
+        return *this = generic_data_handle{value};
     }
 
     /**
@@ -174,33 +189,8 @@ struct generic_data_handle {
         }
     }
 
-    friend std::ostream& operator<<(std::ostream& os, generic_data_handle const& dh) {
-        os << "generic_data_handle{";
-        if (!dh.m_offset.has_always_been_null()) {
-            // modern and valid or once-valid data handle
-            auto const maybe_info = utils::find_container_info(dh.m_container);
-            if (maybe_info) {
-                if (!maybe_info->container.empty()) {
-                    os << "cont=" << maybe_info->container << ' ';
-                }
-                os << maybe_info->field << ' ' << dh.m_offset << '/' << maybe_info->size;
-            } else {
-                // couldn't find which container it points into
-                os << "cont=unknown " << dh.m_offset << "/unknown";
-            }
-        } else {
-            // legacy data handle
-            os << "raw=";
-            if (dh.m_container) {
-                // This shouldn't crash, but it might contain some garbage if
-                // we're wrapping a literal value
-                os << dh.m_container;
-            } else {
-                os << "nullptr";
-            }
-        }
-        return os << ", type=" << dh.type_name() << '}';
-    }
+    // Defined elsewhere to optimise compile times.
+    friend std::ostream& operator<<(std::ostream& os, generic_data_handle const& dh);
 
     /** @brief Check if this handle refers to the specific type.
      *

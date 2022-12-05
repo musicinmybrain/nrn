@@ -373,12 +373,12 @@ int check_tables_threads(List* p) {
     Item* q;
     if (check_table_thread_list) {
         ITERATE(q, check_table_thread_list) {
-            sprintf(buf, "\nstatic void %s(_threadargsproto_);", STR(q));
+            Sprintf(buf, "\nstatic void %s(_threadargsproto_);", STR(q));
             lappendstr(p, buf);
         }
         lappendstr(p, "\nstatic void _check_table_thread(_threadargsprotocomma_ int _type) {\n");
         ITERATE(q, check_table_thread_list) {
-            sprintf(buf, "  %s(_threadargs_);\n", STR(q));
+            Sprintf(buf, "  %s(_threadargs_);\n", STR(q));
             lappendstr(p, buf);
         }
         lappendstr(p, "}\n");
@@ -411,9 +411,9 @@ void table_massage(List* tablist, Item* qtype, Item* qname, List* arglist) {
     if (!check_table_statements) {
         check_table_statements = newlist();
     }
-    sprintf(buf, "_check_%s();\n", fname);
+    Sprintf(buf, "_check_%s();\n", fname);
     q = lappendstr(check_table_statements, buf);
-    sprintf(buf, "_check_%s(_threadargs_);\n", fname);
+    Sprintf(buf, "_check_%s(_threadargs_);\n", fname);
     vectorize_substitute(q, buf);
     /*checking*/
     if (type == FUNCTION1) {
@@ -465,7 +465,7 @@ void table_massage(List* tablist, Item* qtype, Item* qname, List* arglist) {
     if (!check_table_thread_list) {
         check_table_thread_list = newlist();
     }
-    sprintf(buf, "_check_%s", fname);
+    Sprintf(buf, "_check_%s", fname);
     lappendstr(check_table_thread_list, buf);
     Sprintf(buf, "static void _check_%s();\n", fname);
     q = insertstr(procfunc, buf);
@@ -757,7 +757,7 @@ void hocfunchack(Symbol* n, Item* qpar1, Item* qpar2, int hack) {
     }
     if (n == last_func_using_table) {
         qp = lappendstr(procfunc, "");
-        sprintf(buf, "\n#if 1\n _check_%s(_threadargs_);\n#endif\n", n->name);
+        Sprintf(buf, "\n#if 1\n _check_%s(_threadargs_);\n#endif\n", n->name);
         vectorize_substitute(qp, buf);
     }
     if (n->subtype & FUNCT) {
@@ -887,34 +887,34 @@ void function_table(Symbol* s, Item* qpar1, Item* qpar2, Item* qb1, Item* qb2) /
         if (q->itemtype == STRING || SYM(q)->name[0] != '_') {
             continue;
         }
-        sprintf(buf, "_arg[%d] = %s;\n", i, SYM(q)->name);
+        Sprintf(buf, "_arg[%d] = %s;\n", i, SYM(q)->name);
         insertstr(qb2, buf);
         ++i;
     }
     if (i == 0) {
         diag("FUNCTION_TABLE declaration must have one or more arguments:", s->name);
     }
-    sprintf(buf, "double _arg[%d];\n", i);
+    Sprintf(buf, "double _arg[%d];\n", i);
     insertstr(qb1->next, buf);
-    sprintf(buf, "return hoc_func_table(_ptable_%s, %d, _arg);\n", s->name, i);
+    Sprintf(buf, "return hoc_func_table(_ptable_%s, %d, _arg);\n", s->name, i);
     insertstr(qb2, buf);
     insertstr(qb2, "}\n/* "); /* kludge to avoid a bad vectorize_substitute */
     insertstr(qb2->next, " */\n");
 
-    sprintf(buf, "table_%s", s->name);
+    Sprintf(buf, "table_%s", s->name);
     t = install(buf, NAME);
     t->subtype |= FUNCT;
     t->usage |= FUNCT;
     t->no_threadargs = 1;
     t->varnum = 0;
 
-    sprintf(buf, "double %s", t->name);
+    Sprintf(buf, "double %s", t->name);
     lappendstr(procfunc, buf);
     q1 = lappendsym(procfunc, SYM(qpar1));
     q2 = lappendsym(procfunc, SYM(qpar2));
-    sprintf(buf, "{\n\thoc_spec_table(&_ptable_%s, %d);\n\treturn 0.;\n}\n", s->name, i);
+    Sprintf(buf, "{\n\thoc_spec_table(&_ptable_%s, %d);\n\treturn 0.;\n}\n", s->name, i);
     lappendstr(procfunc, buf);
-    sprintf(buf, "\nstatic void* _ptable_%s = (void*)0;\n", s->name);
+    Sprintf(buf, "\nstatic void* _ptable_%s = (void*)0;\n", s->name);
     linsertstr(procfunc, buf);
     hocfunchack(t, q1, q2, 1);
 }
@@ -926,12 +926,12 @@ void watchstmt(Item* par1, Item* dir, Item* par2, Item* flag, int blocktype) {
     if (blocktype != NETRECEIVE) {
         diag("\"WATCH\" statement only allowed in NET_RECEIVE block", (char*) 0);
     }
-    sprintf(buf, "\nstatic double _watch%d_cond(Point_process* _pnt) {\n", watch_seen_);
+    Sprintf(buf, "\nstatic double _watch%d_cond(Point_process* _pnt) {\n", watch_seen_);
     lappendstr(procfunc, buf);
     vectorize_substitute(lappendstr(procfunc, ""),
                          "  Datum* _ppvar; Datum* _thread{};\n"
                          "  NrnThread* _nt{static_cast<NrnThread*>(_pnt->_vnt)};\n");
-    sprintf(buf,
+    Sprintf(buf,
             "  _ppvar = _pnt->_prop->dparam;\n"
             "  auto [_, _ml, _iml] = create_ml(_pnt->_prop);\n"
             "  v = NODEV(_pnt->node);\n"
@@ -953,14 +953,14 @@ void watchstmt(Item* par1, Item* dir, Item* par2, Item* flag, int blocktype) {
                    "\nstatic void _watch_alloc(Datum* _ppvar) {\n"
                    "  auto* _pnt = _ppvar[1].get<Point_process*>();\n");
     }
-    sprintf(buf,
+    Sprintf(buf,
             "  _nrn_watch_allocate(_watch_array, _watch%d_cond, %d, _pnt, %s);\n",
             watch_seen_,
             watch_seen_,
             STR(flag));
     lappendstr(watch_alloc, buf);
 
-    sprintf(buf,
+    Sprintf(buf,
             "  _nrn_watch_activate(_watch_array, _watch%d_cond, %d, _pnt, _watch_rm++, %s);\n",
             watch_seen_,
             watch_seen_,

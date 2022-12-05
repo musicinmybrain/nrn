@@ -197,8 +197,12 @@ void NrnDAE::dkmap(std::vector<neuron::container::data_handle<double>>& pv, std:
     NrnThread* _nt = nrn_threads;
     for (int i = nnode_; i < size_; ++i) {
         // printf("bmap_[%d] = %d\n", i, bmap_[i]);
-        pv[bmap_[i] - 1] = y_.data() + i;
-        pvdot[bmap_[i] - 1] = _nt->node_rhs_storage() + bmap_[i];
+        pv[bmap_[i] - 1] = neuron::container::data_handle<double>{neuron::container::do_not_search,
+                                                                  y_.data() + i};
+        pvdot[bmap_[i] - 1] = neuron::container::data_handle<double>{
+            neuron::container::do_not_search,
+            _nt->node_rhs_storage() + bmap_[i]
+        };
     }
 }
 

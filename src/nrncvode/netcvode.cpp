@@ -840,14 +840,14 @@ static void* cons(Object* o) {
     // source, target, threshold, delay, magnitude
     Object *osrc = nil, *otar;
     Section* srcsec = nil;
-    double* psrc = nil;
+    neuron::container::data_handle<double> psrc{};
     if (hoc_is_object_arg(1)) {
         osrc = *hoc_objgetarg(1);
         if (osrc && !is_point_process(osrc)) {
             hoc_execerror("if arg 1 is an object it must be a point process or NULLObject", 0);
         }
     } else {
-        psrc = hoc_pgetarg(1);
+        psrc = hoc_get_arg<neuron::container::data_handle<double>>(1);
         srcsec = chk_access();
     }
     otar = *hoc_objgetarg(2);
@@ -1742,8 +1742,8 @@ bool NetCvode::init_global() {
             // statement that needs to be handled.
             std::unordered_set<int> ba_candidate;
             {
-                std::vector<int> batypes = {BEFORE_STEP, BEFORE_BREAKPOINT, AFTER_SOLVE};
-                for (const auto& bat: batypes) {
+                constexpr std::array batypes{BEFORE_STEP, BEFORE_BREAKPOINT, AFTER_SOLVE};
+                for (auto const bat: batypes) {
                     for (BAMech* bam = bamech_[bat]; bam; bam = bam->next) {
                         ba_candidate.insert(bam->type);
                     }
@@ -1795,7 +1795,8 @@ bool NetCvode::init_global() {
                     // non-contiguous mode, so we're going to create a lot of 1-element Memb_list
                     // inside cml->ml
                     cml->ml.reserve(cml->ml[0].nodecount);
-                    cml->ml.resize(0);  // remove the single entry from contiguous mode
+                    // remove the single entry from contiguous mode
+                    cml->ml.clear();
                 }
             }
             // fill pointers (and nodecount)
@@ -1818,7 +1819,6 @@ bool NetCvode::init_global() {
                         newml.nodecount = 1;
                         newml.nodelist = new Node*[1];
                         newml.nodelist[0] = ml->nodelist[j];
-                        assert(newml.nodelist[0] == ml->nodelist[j]);
 #if CACHEVEC
                         newml.nodeindices = new int[1]{ml->nodeindices[j]};
 #endif
@@ -2113,14 +2113,15 @@ int NetCvode::solve(double tout) {
             }
         }
     } else if (!gcv_) {  // lvardt
+        auto const cache_token = nrn_ensure_model_data_are_sorted();
         if (tout >= 0.) {
-            time_t rt = time(nil);
+            time_t rt = time(nullptr);
             //			int cnt = 0;
             TQueue* tq = p[0].tq_;
             TQueue* tqe = p[0].tqe_;
             NrnThread* nt = nrn_threads;
             while (tq->least_t() < tout || tqe->least_t() <= tout) {
-                err = local_microstep(nrn_ensure_model_data_are_sorted(), *nt);
+                err = local_microstep(cache_token, *nt);
                 if (nrn_allthread_handle) {
                     (*nrn_allthread_handle)();
                 }
@@ -2129,13 +2130,13 @@ int NetCvode::solve(double tout) {
                 }
 #if HAVE_IV
                 IFGUI
-                if (rt < time(nil)) {
+                if (rt < time(nullptr)) {
                     //				if (++cnt > 10000) {
                     //					cnt = 0;
                     Oc oc;
                     oc.notify();
                     single_event_run();
-                    rt = time(nil);
+                    rt = time(nullptr);
                 }
                 ENDGUI
 #endif
@@ -2154,7 +2155,7 @@ int NetCvode::solve(double tout) {
             double tc = tq->least_t();
             double te = p[0].tqe_->least_t();
             while (tq->least_t() <= tc && p[0].tqe_->least_t() <= te) {
-                err = local_microstep(nrn_ensure_model_data_are_sorted(), *nrn_threads);
+                err = local_microstep(cache_token, *nrn_threads);
                 if (nrn_allthread_handle) {
                     (*nrn_allthread_handle)();
                 }
@@ -2305,7 +2306,7 @@ void nrn_net_move(Datum* v, Point_process* pnt, double tt) {
     if (tt < PP2t(pnt)) {
         SelfEvent* se = (SelfEvent*) q->data_;
         char buf[100];
-        sprintf(buf, "net_move tt-nt_t = %g", tt - PP2t(pnt));
+        Sprintf(buf, "net_move tt-nt_t = %g", tt - PP2t(pnt));
         se->pr(buf, tt, net_cvode_instance);
         assert(0);
         hoc_execerror("net_move tt < t", 0);
@@ -2326,7 +2327,7 @@ void artcell_net_move(Datum* v, Point_process* pnt, double tt) {
         if (tt < nt->_t) {
             SelfEvent* se = (SelfEvent*) q->data_;
             char buf[100];
-            sprintf(buf, "artcell_net_move tt-nt_t = %g", tt - nt->_t);
+            Sprintf(buf, "artcell_net_move tt-nt_t = %g", tt - nt->_t);
             se->pr(buf, tt, net_cvode_instance);
             hoc_execerror("net_move tt < t", 0);
         }
@@ -2387,7 +2388,7 @@ void nrn_net_send(Datum* v, double* weight, Point_process* pnt, double td, doubl
     ++p.unreffed_event_cnt_;
     if (td < nt->_t) {
         char buf[100];
-        sprintf(buf, "net_send td-t = %g", td - nt->_t);
+        Sprintf(buf, "net_send td-t = %g", td - nt->_t);
         se->pr(buf, td, net_cvode_instance);
         abort();
         hoc_execerror("net_send delay < 0", 0);
@@ -2423,7 +2424,7 @@ void artcell_net_send(Datum* v, double* weight, Point_process* pnt, double td, d
         ++p.unreffed_event_cnt_;
         if (td < nt->_t) {
             char buf[100];
-            sprintf(buf, "net_send td-t = %g", td - nt->_t);
+            Sprintf(buf, "net_send td-t = %g", td - nt->_t);
             se->pr(buf, td, net_cvode_instance);
             hoc_execerror("net_send delay < 0", 0);
         }
@@ -2458,7 +2459,7 @@ void net_event(Point_process* pnt, double time) {
     if (ps) {
         if (time < PP2t(pnt)) {
             char buf[100];
-            sprintf(buf, "net_event time-t = %g", time - PP2t(pnt));
+            Sprintf(buf, "net_event time-t = %g", time - PP2t(pnt));
             ps->pr(buf, time, net_cvode_instance);
             hoc_execerror("net_event time < t", 0);
         }
@@ -4529,7 +4530,7 @@ std::string NetCvode::statename(int is, int style) {
 const char* NetCvode::sym2name(Symbol* sym) {
     if (sym->type == RANGEVAR && sym->u.rng.type > 1 && memb_func[sym->u.rng.type].is_point) {
         static char buf[200];
-        sprintf(buf, "%s.%s", memb_func[sym->u.rng.type].sym->name, sym->name);
+        Sprintf(buf, "%s.%s", memb_func[sym->u.rng.type].sym->name, sym->name);
         return buf;
     } else {
         return sym->name;
@@ -4648,7 +4649,7 @@ void NetCvode::structure_change() {
     }
 }
 
-NetCon* NetCvode::install_deliver(double* dsrc,
+NetCon* NetCvode::install_deliver(neuron::container::data_handle<double> dsrc,
                                   Section* ssrc,
                                   Object* osrc,
                                   Object* target,
@@ -4656,7 +4657,7 @@ NetCon* NetCvode::install_deliver(double* dsrc,
                                   double delay,
                                   double magnitude) {
     PreSyn* ps = nil;
-    double* psrc = nil;
+    neuron::container::data_handle<double> psrc{};
     if (ssrc) {
         consist_sec_pd("NetCon", ssrc, dsrc);
     }
@@ -4674,8 +4675,8 @@ NetCon* NetCvode::install_deliver(double* dsrc,
             Point_process* pp = ob2pntproc(osrc);
             assert(pp && pp->prop);
             if (!pnt_receive[pp->prop->_type]) {  // only if no NET_RECEIVE block
-                sprintf(buf, "%s.x", hoc_object_name(osrc));
-                psrc = hoc_val_pointer(buf);
+                Sprintf(buf, "%s.x", hoc_object_name(osrc));
+                psrc = hoc_val_handle(buf);
             }
         }
     } else {
@@ -4708,7 +4709,7 @@ NetCon* NetCvode::install_deliver(double* dsrc,
         }
     } else if (target) {  // no source so use the special presyn
         if (!unused_presyn) {
-            unused_presyn = new PreSyn(nil, nil, nil);
+            unused_presyn = new PreSyn({}, nullptr, nullptr);
             unused_presyn->hi_ = hoc_l_insertvoid(psl_, unused_presyn);
         }
         ps = unused_presyn;
@@ -5306,17 +5307,9 @@ if (d->obj_) {
         idvec_ = nil;
     }
     net_cvode_instance->presyn_disconnect(this);
-    thvar_ = nil;
+    thvar_ = {};
     osrc_ = nil;
     delete this;
-}
-
-void PreSyn::update_ptr(double* pd) {
-#if DISCRETE_EVENT_OBSERVER
-    nrn_notify_pointer_disconnect(this);
-    nrn_notify_when_double_freed(pd, this);
-#endif
-    thvar_ = pd;
 }
 
 void ConditionEvent::check(NrnThread* nt, double tt, double teps) {
@@ -5525,7 +5518,8 @@ void StateTransitionEvent::transition(int src,
 
 void STETransition::activate() {
     if (var1_is_time_) {
-        var1_ = &stec_->thread()->_t;
+        var1_ = neuron::container::data_handle<double>{neuron::container::do_not_search,
+                                                       &stec_->thread()->_t};
     }
     if (stec_->qthresh_) {  // is it on the queue
         net_cvode_instance->remove_event(stec_->qthresh_, stec_->thread()->id);
@@ -5737,7 +5731,7 @@ static int trajec_buffered(NrnThread& nt,
         pvars[i_trajec] = static_cast<double*>(pd);
     }
     vpr[i_pr] = pr;
-    if (pd == &nt._t) {
+    if (static_cast<double const*>(pd) == &nt._t) {
         types[i_trajec] = 0;
         indices[i_trajec] = 0;
     } else {
@@ -5803,7 +5797,7 @@ void nrnthread_get_trajectory_requests(int tid,
 #if HAVE_IV
                 } else if (pr->type() == GLineRecordType) {
                     n_pr++;
-                    if (pr->pd_ == NULL) {
+                    if (!pr->pd_) {
                         GLineRecord* glr = (GLineRecord*) pr;
                         assert(glr->gl_->expr_);
                         glr->fill_pd();
@@ -5855,7 +5849,8 @@ void nrnthread_get_trajectory_requests(int tid,
                         err = trajec_buffered(nt,
                                               bsize,
                                               v,
-                                              &nt._t,
+                                              neuron::container::data_handle<double>{
+                                                  neuron::container::do_not_search, &nt._t},
                                               n_pr++,
                                               pr,
                                               vpr,
@@ -5920,10 +5915,11 @@ void nrnthread_get_trajectory_requests(int tid,
                                 if (bsize && v == NULL) {
                                     v = (*it).second = new IvocVect(bsize);
                                 }
+                                // TODO avoid the conversion?
                                 err = trajec_buffered(nt,
                                                       bsize,
                                                       v,
-                                                      pd,
+                                                      neuron::container::data_handle<double>{pd},
                                                       n_pr,
                                                       pr,
                                                       vpr,
@@ -6510,7 +6506,7 @@ void VecRecordDt::deliver(double tt, NetCvode* nc) {
 }
 
 void NetCvode::vecrecord_add() {
-    double* pd = hoc_pgetarg(1);
+    auto const pd = hoc_get_arg<neuron::container::data_handle<double>>(1);
     consist_sec_pd("Cvode.record", chk_access(), pd);
     IvocVect* y = vector_arg(2);
     IvocVect* t = vector_arg(3);

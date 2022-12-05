@@ -117,7 +117,7 @@ the notify_free_val parameter in node_free in solve.cpp
 #define VEC_A(i)    (_nt->_actual_a[(i)])
 #define VEC_B(i)    (_nt->_actual_b[(i)])
 #define VEC_D(i)    (_nt->_actual_d[(i)])
-#define VEC_RHS(i)  (_nt->actual_rhs(i))
+#define VEC_RHS(i)  (_nt->_actual_rhs[(i)])
 #define VEC_V(i)    (_nt->actual_v(i))
 #define VEC_AREA(i) (_nt->actual_area(i))
 #define NODEA(n)    (VEC_A((n)->v_node_index))

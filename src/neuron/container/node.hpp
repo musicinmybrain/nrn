@@ -133,7 +133,7 @@ struct handle_interface: handle_base<Identifier> {
         return v();
     }
 
-    /** @brief Set the right hand side of the Hines solver.
+    /** @brief Set the membrane potential.
      */
     void set_v(field::Voltage::type v) {
         this->template get<field::Voltage>() = v;

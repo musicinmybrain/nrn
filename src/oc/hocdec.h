@@ -7,6 +7,7 @@
 #include "nrnapi.h"
 #include "hocassrt.h" /* hoc_execerror instead of abort */
 #include "nrnassrt.h" /* assert in case of side effects (eg. scanf) */
+#include "wrap_sprintf.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -266,7 +267,6 @@ int ilint;
 #define Strncat cplint = strncat
 #define Strcpy  cplint = strcpy
 #define Strncpy cplint = strncpy
-#define Sprintf cplint = sprintf
 #define Printf  ilint = printf
 #else
 #undef IGNORE
@@ -276,9 +276,9 @@ int ilint;
 #define Strncat strncat
 #define Strcpy  strcpy
 #define Strncpy strncpy
-#define Sprintf sprintf
 #define Printf  nrnpy_pr
 #endif
+using neuron::Sprintf;
 
 #define ERRCHK(c1) c1
 

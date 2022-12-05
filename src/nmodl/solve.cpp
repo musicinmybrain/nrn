@@ -91,7 +91,7 @@ void solvequeue(Item* qName, Item* qMethod, int blocktype) /*solve NAME [using M
     List* errstmt = newlist();
     lq = lappendsym(solvq, SYM0);
     LST(lq) = errstmt;
-    sprintf(buf,
+    Sprintf(buf,
             "if(error){\n"
             "  std_cerr_stream << \"%s\\n\";\n"
             "  std_cerr_stream << _ml->instance_handle(_iml) << '\\n';\n"

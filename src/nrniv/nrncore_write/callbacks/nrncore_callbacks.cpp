@@ -97,7 +97,7 @@ void* get_global_dbl_item(void* p, const char*& name, int& size, double*& val) {
                     val = new double[size];
                     for (int i = 0; i < a->sub[0]; ++i) {
                         char n[256];
-                        sprintf(n, "%s[%d]", sp->name, i);
+                        Sprintf(n, "%s[%d]", sp->name, i);
                         val[i] = *hoc_val_pointer(n);
                     }
                 }
@@ -1168,10 +1168,7 @@ void nrn2core_PreSyn_flag(int tid, std::set<int>& presyns_flag_true) {
             if (ps->flag_ && ps->thvar_) {
                 int type = 0;
                 int index_v = -1;
-                // WARNING: must avoid modifying Nodes while these indices are
-                // stored
-                auto const cache_token = nrn_ensure_model_data_are_sorted();
-                nrn_dblpntr2nrncore(static_cast<double*>(ps->thvar_), *ps->nt_, type, index_v);
+                nrn_dblpntr2nrncore(ps->thvar_, *ps->nt_, type, index_v);
                 assert(type == voltage);
                 presyns_flag_true.insert(index_v);
             }
