@@ -229,7 +229,7 @@ printf("%d Cvode::init_eqn id=%d neq_v_=%d #nonvint=%d #nonvint_extra=%d nvsize=
             auto* const node = z.cmlcap_->ml.size() == 1 ? z.cmlcap_->ml[0].nodelist[i]
                                                          : z.cmlcap_->ml[i].nodelist[0];
             z.pv_[i] = node->v_handle();
-            z.pvdot_[i] = &(NODERHS(node));
+            z.pvdot_[i] = node->rhs_handle();
             *z.pvdot_[i] = 0.;  // only ones = 1 are no_cap
         }
 
@@ -445,7 +445,7 @@ void Cvode::daspk_init_eqn() {
                 for (ie = 0; ie < nlayer; ++ie) {
                     k = i + ie + 1;
                     z.pv_[k] = neuron::container::data_handle<double>{nde->v + ie};
-                    z.pvdot_[k] = nde->_rhs[ie];
+                    z.pvdot_[k] = neuron::container::data_handle<double>{nde->_rhs[ie]};
                 }
             }
         }
