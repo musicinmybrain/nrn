@@ -89,7 +89,7 @@ void Cvode::lhs(NrnThread* _nt) {
 
     lhs_memb(z.cv_memb_list_, _nt);
     nrn_nonvint_block_conductance(_nt->end, _nt->node_rhs_storage(), _nt->id);
-     for (auto& ml: z.cmlcap_->ml) {
+    for (auto& ml: z.cmlcap_->ml) {
         nrn_cap_jacob(_nt, &ml);
     }
 
