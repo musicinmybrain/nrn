@@ -2019,7 +2019,7 @@ printf("nrn_matrix_node_alloc use_sparse13=%d cvode_active_=%d nrn_use_daspk_=%d
         }
         /*printf(" %d extracellular nodes\n", extn);*/
         neqn += extn;
-        nt->_actual_rhs = (double*) ecalloc(neqn + 1, sizeof(double));
+        // nt->_actual_rhs = (double*) ecalloc(neqn + 1, sizeof(double)); // Shouldn't be needed? Maybe instead of ecalloc, resize?
         nt->_sp13mat = spCreate(neqn, 0, &err);
         if (err != spOKAY) {
             hoc_execerror("Couldn't create sparse matrix", (char*) 0);
@@ -2038,13 +2038,13 @@ printf("nrn_matrix_node_alloc use_sparse13=%d cvode_active_=%d nrn_use_daspk_=%d
             nde = nd->extnode;
             pnd = nt->_v_parent[in];
             i = nd->eqn_index_;
-            nd->_rhs = nt->_actual_rhs + i;
+            nd->set_rhs(nt->actual_rhs(i));
             nd->_d = spGetElement(nt->_sp13mat, i, i);
             if (nde) {
                 for (ie = 0; ie < nlayer; ++ie) {
                     k = i + ie + 1;
                     nde->_d[ie] = spGetElement(nt->_sp13mat, k, k);
-                    nde->_rhs[ie] = nt->_actual_rhs + k;
+                    nde->_rhs[ie] = nt->node_rhs_storage() + k;
                     nde->_x21[ie] = spGetElement(nt->_sp13mat, k, k - 1);
                     nde->_x12[ie] = spGetElement(nt->_sp13mat, k - 1, k);
                 }
@@ -2071,11 +2071,10 @@ printf("nrn_matrix_node_alloc use_sparse13=%d cvode_active_=%d nrn_use_daspk_=%d
             assert(nrndae_extra_eqn_count() == 0);
             assert(!nt->_ecell_memb_list || nt->_ecell_memb_list->nodecount == 0);
             nt->_actual_d = (double*) ecalloc(nt->end, sizeof(double));
-            nt->_actual_rhs = (double*) ecalloc(nt->end, sizeof(double));
             for (i = 0; i < nt->end; ++i) {
                 Node* nd = nt->_v_node[i];
                 nd->_d = nt->_actual_d + i;
-                nd->_rhs = nt->_actual_rhs + i;
+                nd->set_rhs(nt->actual_rhs(i));
             }
         }
     }
