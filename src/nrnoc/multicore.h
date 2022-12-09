@@ -120,6 +120,7 @@ struct NrnThread {
     Node** _v_node;
     Node** _v_parent;
     char* _sp13mat;              /* handle to general sparse matrix */
+    double* cvode_sparse13_eqs;
     Memb_list* _ecell_memb_list; /* normally nil */
     Node** _ecell_children;      /* nodes with no extcell but parent has it */
     _nrn_Fast_Imem* _nrn_fast_imem;
