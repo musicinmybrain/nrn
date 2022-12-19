@@ -371,7 +371,7 @@ void nrn_rhs(neuron::model_sorted_token const& cache_token, NrnThread& nt) {
         nrn_thread_error("nrn_rhs use_sparse13");
         neqn = spGetSize(_nt->_sp13mat, 0);
         for (i = 1; i <= neqn; ++i) {
-            _nt->actual_rhs(i) = 0.;
+            _nt->_sp13_rhs[i] = 0.;
         }
     } else {
 #if CACHEVEC
@@ -2019,7 +2019,7 @@ printf("nrn_matrix_node_alloc use_sparse13=%d cvode_active_=%d nrn_use_daspk_=%d
         }
         /*printf(" %d extracellular nodes\n", extn);*/
         neqn += extn;
-        nt->_sp13_rhs = (double*) ecalloc(neqn + 1, sizeof(double)); // Shouldn't be needed? Maybe instead of ecalloc, resize?
+        nt->_sp13_rhs = (double*) ecalloc(neqn + 1, sizeof(double));
         nt->_sp13mat = spCreate(neqn, 0, &err);
         if (err != spOKAY) {
             hoc_execerror("Couldn't create sparse matrix", (char*) 0);
@@ -2045,7 +2045,7 @@ printf("nrn_matrix_node_alloc use_sparse13=%d cvode_active_=%d nrn_use_daspk_=%d
                 for (ie = 0; ie < nlayer; ++ie) {
                     k = i + ie + 1;
                     nde->_d[ie] = spGetElement(nt->_sp13mat, k, k);
-                    nde->_rhs[ie] = nd->_sp13_rhs + k;
+                    nde->_rhs[ie] = nt->_sp13_rhs + k;
                     nde->_x21[ie] = spGetElement(nt->_sp13mat, k, k - 1);
                     nde->_x12[ie] = spGetElement(nt->_sp13mat, k - 1, k);
                 }
