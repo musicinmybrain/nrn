@@ -370,7 +370,7 @@ void nrn_rhs(neuron::model_sorted_token const& cache_token, NrnThread& nt) {
         int i, neqn;
         nrn_thread_error("nrn_rhs use_sparse13");
         neqn = spGetSize(_nt->_sp13mat, 0);
-        for (i = 1; i <= neqn; ++i) {
+        for (i = 0; i <= _nt->end; ++i) {
             _nt->actual_rhs(i) = 0.;
         }
     } else {
@@ -2012,25 +2012,31 @@ printf("nrn_matrix_node_alloc use_sparse13=%d cvode_active_=%d nrn_use_daspk_=%d
     if (use_sparse13) {
         int in, err, extn, neqn, j;
         nt = nrn_threads;
-        neqn = nrndae_extra_eqn_count();
+        neqn = nt->end + nrndae_extra_eqn_count();
+        std::cout << "neqn = " << neqn << std::endl;
         extn = 0;
         if (nt->_ecell_memb_list) {
             extn = nt->_ecell_memb_list->nodecount * nlayer;
         }
+        std::cout << "extn = " << extn << std::endl;
         /*printf(" %d extracellular nodes\n", extn);*/
         neqn += extn;
         // Allocate space for the sparse13 equations in CVODE
-        nt->cvode_sparse13_eqs = (double*) ecalloc(neqn + 1, sizeof(double));
+        nt->cvode_sparse13_eqs = (double*) ecalloc(neqn - nt->end, sizeof(double));
+        std::cout << "cvode_sparse13_eqs size = " << neqn + 1 << std::endl;
+        std::cout << "cvode_sparse13_eqs addr = " << nt->cvode_sparse13_eqs << std::endl;
         nt->_sp13mat = spCreate(neqn, 0, &err);
         if (err != spOKAY) {
             hoc_execerror("Couldn't create sparse matrix", (char*) 0);
         }
         for (in = 0, i = 1; in < nt->end; ++in, ++i) {
+            std::cout << "nt->_v_node[" << in << "]->eqn_index_ = " << i << std::endl;
             nt->_v_node[in]->eqn_index_ = i;
             if (nt->_v_node[in]->extnode) {
                 i += nlayer;
             }
         }
+        std::cout << "nlayer = " << nlayer << std::endl;
         for (in = 0; in < nt->end; ++in) {
             int ie, k;
             Node *nd, *pnd;
@@ -2044,8 +2050,12 @@ printf("nrn_matrix_node_alloc use_sparse13=%d cvode_active_=%d nrn_use_daspk_=%d
             if (nde) {
                 for (ie = 0; ie < nlayer; ++ie) {
                     k = i + ie + 1;
+                    std::cout << "nde = " << nde << std::endl;
+                    std::cout << "ie = " << ie << std::endl;
+                    std::cout << "k = " << k << std::endl;
                     nde->_d[ie] = spGetElement(nt->_sp13mat, k, k);
-                    nde->_rhs[ie] = nt->cvode_sparse13_eqs + k;
+                    nde->_rhs[ie] = &nt->cvode_sparse13_eqs[k-2];
+                    std::cout << "nde->_rhs[" << ie << "] addr = " << nde->_rhs[ie] << std::endl;
                     nde->_x21[ie] = spGetElement(nt->_sp13mat, k, k - 1);
                     nde->_x12[ie] = spGetElement(nt->_sp13mat, k - 1, k);
                 }

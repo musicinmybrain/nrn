@@ -494,6 +494,8 @@ void ext_con_coef(void) /* setup a and b */
     Extnode* nde;
     double* pd;
 
+    std::cout << "ext_con_coef" << std::endl;
+
     /* temporarily store half segment resistances in rhs */
     // ForAllSections(sec)
     ITERATE(qsec, section_list) {
@@ -502,8 +504,14 @@ void ext_con_coef(void) /* setup a and b */
             dx = section_length(sec) / ((double) (sec->nnode - 1));
             for (j = 0; j < sec->nnode - 1; j++) {
                 nde = sec->pnode[j]->extnode;
+                std::cout << "nde = " << nde << std::endl;
+                std::cout << "j = " << j << std::endl;
                 for (k = 0; k < nrn_nlayer_extracellular; ++k) {
-                    *nde->_rhs[k] = 1e-4 * *nde->param[xraxial_index(k)] * (dx / 2.); /*Megohms*/
+                    std::cout << "k = " << k << std::endl;
+                    
+                    std::cout << "nde->_rhs[" << k << "] addr = " << nde->_rhs[k] << std::endl;
+                    const auto mult = *nde->param[xraxial_index(k)] * (dx / 2.);
+                    *nde->_rhs[k] = 1e-4 * mult; /*Megohms*/
                 }
             }
             /* last segment has 0 length. */
