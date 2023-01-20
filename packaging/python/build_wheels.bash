@@ -74,7 +74,7 @@ build_wheel_linux() {
     (( $skip )) && return 0
 
     echo " - Installing build requirements"
-    pip install auditwheel
+    pip install auditwheel patchelf==0.16.1
     pip install -r packaging/python/build_requirements.txt
     pip_numpy_install
 
