@@ -58,17 +58,18 @@ struct nrnran123_State {
     char which_;
 };
 
-}  // namespace coreneuron
+namespace random123_global {
 
 /** @brief Provide a helper function in global namespace that is declared target for OpenMP
  * offloading to function correctly with NVHPC
  */
 nrn_pragma_acc(routine seq)
 nrn_pragma_omp(declare target)
-philox4x32_ctr_t coreneuron_random123_philox4x32_helper(coreneuron::nrnran123_State* s);
+philox4x32_ctr_t coreneuron_random123_philox4x32_helper(nrnran123_State* s);
 nrn_pragma_omp(end declare target)
 
-namespace coreneuron {
+}  // namespace random123_global
+
 void nrnran123_initialise_global_state_on_device();
 void nrnran123_destroy_global_state_on_device();
 
@@ -119,7 +120,7 @@ inline uint32_t nrnran123_ipick(nrnran123_State* s) {
     if (which > 3) {
         which = 0;
         s->c.v[0]++;
-        s->r = coreneuron_random123_philox4x32_helper(s);
+        s->r = random123_global::coreneuron_random123_philox4x32_helper(s);
     }
     s->which_ = which;
     return rval;
@@ -145,7 +146,7 @@ inline void nrnran123_setseq(nrnran123_State* s, uint32_t seq, char which) {
         s->which_ = which;
     }
     s->c.v[0] = seq;
-    s->r = coreneuron_random123_philox4x32_helper(s);
+    s->r = random123_global::coreneuron_random123_philox4x32_helper(s);
 }
 
 // nrnran123_negexp min value is 2.3283064e-10, max is 22.18071, mean 1.0

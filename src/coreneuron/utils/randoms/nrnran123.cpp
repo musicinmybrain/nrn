@@ -29,7 +29,8 @@
 #define CORENRN_HOST_DEVICE
 #endif
 
-namespace {
+namespace coreneuron {
+namespace random123_global {
 #ifdef CORENEURON_USE_BOOST_POOL
 /** Tag type for use with boost::fast_pool_allocator that forwards to
  *  coreneuron::[de]allocate_unified(). Using a Random123-specific type here
@@ -80,8 +81,6 @@ using random123_allocator = coreneuron::unified_allocator<coreneuron::nrnran123_
 OMP_Mutex g_instance_count_mutex;
 std::size_t g_instance_count{};
 
-}  // namespace
-
 #ifdef __CUDACC__
 #define g_k_qualifiers __device__ __constant__
 #else
@@ -100,36 +99,47 @@ coreneuron_random123_philox4x32_helper(coreneuron::nrnran123_State* s) {
     return philox4x32(s->c, global_state());
 }
 
-namespace coreneuron {
+}  // namespace random123_global
+
 std::size_t nrnran123_instance_count() {
-    return g_instance_count;
+    return random123_global::g_instance_count;
 }
 
 /* if one sets the global, one should reset all the stream sequences. */
 uint32_t nrnran123_get_globalindex() {
-    return global_state().v[0];
+    return random123_global::global_state().v[0];
 }
 
 /* nrn123 streams are created from cpu launcher routine */
 void nrnran123_set_globalindex(uint32_t gix) {
     // If the global seed is changing then we shouldn't have any active streams.
-    auto& g_k = global_state();
+    auto& g_k_host = random123_global::global_state();
     {
-        std::lock_guard<OMP_Mutex> _{g_instance_count_mutex};
-        if (g_instance_count != 0 && nrnmpi_myid == 0) {
+        std::lock_guard<OMP_Mutex> _{random123_global::g_instance_count_mutex};
+        if (random123_global::g_instance_count != 0 && nrnmpi_myid == 0) {
             std::cout
                 << "nrnran123_set_globalindex(" << gix
-                << ") called when a non-zero number of Random123 streams (" << g_instance_count
+                << ") called when a non-zero number of Random123 streams (" << random123_global::g_instance_count
                 << ") were active. This is not safe, some streams will remember the old value ("
-                << g_k.v[0] << ')' << std::endl;
+                << g_k_host.v[0] << ')' << std::endl;
         }
     }
-    if (g_k.v[0] != gix) {
-        g_k.v[0] = gix;
+    if (g_k_host.v[0] != gix) {
+        g_k_host.v[0] = gix;
         if (coreneuron::gpu_enabled()) {
 #ifdef __CUDACC__
             {
-                auto const code = cudaMemcpyToSymbol(g_k, &g_k, sizeof(g_k));
+                printf("%p %p\n", &random123_global::g_k, &g_k_host);
+                // auto const code = cudaMemcpyToSymbol(random123_global::g_k, &g_k_host, sizeof(g_k_host));
+                void* devPtr{};
+                auto const code = cudaGetSymbolAddress(&devPtr, random123_global::g_k);
+                if (code != cudaSuccess) {
+                    std::cerr << "CUDA Execution Error: " << cudaGetErrorString(code) << std::endl;
+                }
+                std::cout << "devPtr " << devPtr << std::endl;
+                if (code != cudaSuccess) {
+                    std::cerr << "CUDA Execution Error: " << cudaGetErrorString(code) << std::endl;
+                }
                 assert(code == cudaSuccess);
             }
             {
@@ -137,8 +147,8 @@ void nrnran123_set_globalindex(uint32_t gix) {
                 assert(code == cudaSuccess);
             }
 #else
-            nrn_pragma_acc(update device(g_k))
-            nrn_pragma_omp(target update to(g_k))
+            nrn_pragma_acc(update device(random123_global::g_k))
+            nrn_pragma_omp(target update to(random123_global::g_k))
 #endif
         }
     }
@@ -147,7 +157,7 @@ void nrnran123_set_globalindex(uint32_t gix) {
 void nrnran123_initialise_global_state_on_device() {
     if (coreneuron::gpu_enabled()) {
 #ifndef __CUDACC__
-        nrn_pragma_acc(enter data copyin(g_k))
+        nrn_pragma_acc(enter data copyin(random123_global::g_k))
 #endif
     }
 }
@@ -155,7 +165,7 @@ void nrnran123_initialise_global_state_on_device() {
 void nrnran123_destroy_global_state_on_device() {
     if (coreneuron::gpu_enabled()) {
 #ifndef __CUDACC__
-        nrn_pragma_acc(exit data delete (g_k))
+        nrn_pragma_acc(exit data delete (random123_global::g_k))
 #endif
     }
 }
@@ -182,7 +192,7 @@ nrnran123_State* nrnran123_newstream3(uint32_t id1,
 #endif
     nrnran123_State* s{nullptr};
     if (use_unified_memory) {
-        s = coreneuron::allocate_unique<nrnran123_State>(random123_allocator{}).release();
+        s = coreneuron::allocate_unique<nrnran123_State>(random123_global::random123_allocator{}).release();
     } else {
         s = new nrnran123_State{};
     }
@@ -192,8 +202,8 @@ nrnran123_State* nrnran123_newstream3(uint32_t id1,
     s->c.v[3] = id2;
     nrnran123_setseq(s, 0, 0);
     {
-        std::lock_guard<OMP_Mutex> _{g_instance_count_mutex};
-        ++g_instance_count;
+        std::lock_guard<OMP_Mutex> _{random123_global::g_instance_count_mutex};
+        ++random123_global::g_instance_count;
     }
     return s;
 }
@@ -206,11 +216,11 @@ void nrnran123_deletestream(nrnran123_State* s, bool use_unified_memory) {
     }
 #endif
     {
-        std::lock_guard<OMP_Mutex> _{g_instance_count_mutex};
-        --g_instance_count;
+        std::lock_guard<OMP_Mutex> _{random123_global::g_instance_count_mutex};
+        --random123_global::g_instance_count;
     }
     if (use_unified_memory) {
-        std::unique_ptr<nrnran123_State, coreneuron::alloc_deleter<random123_allocator>> _{s};
+        std::unique_ptr<nrnran123_State, coreneuron::alloc_deleter<random123_global::random123_allocator>> _{s};
     } else {
         delete s;
     }
