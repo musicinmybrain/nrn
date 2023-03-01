@@ -197,10 +197,10 @@ build:nmodl:
 .build_neuron_mod2c:
   extends: [.build_neuron]
   variables:
-    # libsonata-report and reportinglib parts avoid those libraries being
+    # libsonata-report parts avoid those libraries being
     # compiled with intel, nvhpc and gcc in every pipeline; the
     # hpe-mpi/python/py-setuptools parts try to avoid re-building py-mpi4py
-    SPACK_PACKAGE_DEPENDENCIES: ^libsonata-report%gcc ^reportinglib%gcc ^hpe-mpi%gcc ^python%gcc ^py-setuptools%gcc
+    SPACK_PACKAGE_DEPENDENCIES: ^libsonata-report%gcc ^hpe-mpi%gcc ^python%gcc ^py-setuptools%gcc
 
 build:neuron:mod2c:intel:shared:
   extends: [.build_neuron_mod2c, .spack_intel]
