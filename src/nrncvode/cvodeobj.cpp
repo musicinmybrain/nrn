@@ -362,11 +362,12 @@ static double use_long_double(void* v) {
     NetCvode* d = (NetCvode*) v;
     hoc_return_type_code = 2;  // boolean
     if (ifarg(1)) {
-        int i = (int) chkarg(1, 0, 1);
-        d->use_long_double_ = i;
+        bool const new_value = chkarg(1, 0, 1);
+        d->use_long_double_changed_ = (new_value != d->use_long_double_);
+        d->use_long_double_ = new_value;
         recalc_diam();
     }
-    return (double) d->use_long_double_;
+    return d->use_long_double_;
 }
 
 static double condition_order(void* v) {
@@ -890,7 +891,8 @@ void Cvode::stat_init() {
 }
 
 void Cvode::init_prepare() {
-    if (init_global()) {
+    auto const do_init = init_global();
+    if (do_init) {
         if (y_) {
             N_VDestroy(y_);
             y_ = nil;

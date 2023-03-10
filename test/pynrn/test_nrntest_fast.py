@@ -43,13 +43,13 @@ def test_t13():
     in N_VWrmsNorm)
     """
     h.nrnunit_use_legacy(True)
-    cells = [Cell(i) for i in range(2)]
-    with num_threads(threads=1, parallel=True), open("temp13_py", "w") as ofile:
+    cells = [Cell(i) for i in range(3)]
+    with num_threads(threads=3, parallel=True), open("temp13_py", "w") as ofile:
         print("fixed step", file=ofile)
         h.run()
         for cell in cells:
             cell.pr(ofile)
-        with cvode_enabled(True), cvode_use_long_double(False):
+        with cvode_enabled(True), cvode_use_long_double(True):
             print("cvode", file=ofile)
             h.run()
             for cell in cells:

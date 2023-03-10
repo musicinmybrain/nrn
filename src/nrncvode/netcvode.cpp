@@ -1178,7 +1178,6 @@ void NetCvodeThreadData::enqueue(NetCvode* nc, NrnThread* nt) {
 }
 
 NetCvode::NetCvode(bool single) {
-    use_long_double_ = 0;
     empty_ = true;  // no equations (only artificial cells).
     MUTCONSTRUCT(0);
     maxorder_ = 5;

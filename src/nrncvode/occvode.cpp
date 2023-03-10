@@ -80,6 +80,7 @@ The variable step method for these cases is handled by daspk.
 // determine neq_ and vector of pointers to scatter/gather y
 // as well as algebraic nodes (no_cap)
 
+extern NetCvode* net_cvode_instance;
 bool Cvode::init_global() {
 #if PARANEURON
     if (!use_partrans_ && nrnmpi_numprocs > 1 && (nrnmpi_v_transfer_ || nrn_multisplit_solve_)) {
@@ -87,9 +88,17 @@ bool Cvode::init_global() {
         // threads and mpi together
         // could be a lot better.
         use_partrans_ = true;
+        if (net_cvode_instance->use_long_double_changed_) {
+            net_cvode_instance->use_long_double_changed_ = false;
+            return true;
+        }
     } else
 #endif
-        if (!structure_change_) {
+        if (net_cvode_instance->use_long_double_changed_) {
+        net_cvode_instance->use_long_double_changed_ = false;
+        return true;
+    }
+    if (!structure_change_) {
         return false;
     }
     if (ctd_[0].cv_memb_list_ == nil) {

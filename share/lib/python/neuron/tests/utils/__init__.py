@@ -36,6 +36,8 @@ def cvode_use_long_double(enabled):
     cv = h.CVode()
     old_setting = cv.use_long_double()
     cv.use_long_double(enabled)
+    if enabled != old_setting:
+        cv.re_init()
     try:
         yield None
     finally:

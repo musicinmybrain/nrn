@@ -255,7 +255,7 @@ class NetCvode {
     int pcnt_;
     NetCvodeThreadData* p;
     int enqueueing_;
-    int use_long_double_;
+    bool use_long_double_{false}, use_long_double_changed_{false};
 
   public:
     MUTDEC  // only for enqueueing_ so far.
