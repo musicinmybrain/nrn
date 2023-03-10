@@ -52,6 +52,7 @@ echo "nrnivmodl successfull"
 python -c "import neuron; from neuron import h; s = h.Section(); s.insert('cacum'); print('cacum inserted'); quit()" || set "errorfound=y"
 
 :: text rxd
+git submodule update --init test\rxd\testdata
 python share\lib\python\neuron\rxdtests\run_all.py || set "errorfound=y"
 
 :: Test of association with hoc files. This test is very tricky to handle. We do it in two steps.
