@@ -144,7 +144,14 @@ if(NRN_ENABLE_MODULE_INSTALL)
   # =============================================================================
   # for each python detected / provided by user, install module at install time
 
-  list(APPEND extra_env "CC=${CMAKE_C_COMPILER}" "CXX=${CMAKE_CXX_COMPILER}")
+  # setup.py tries to compile C++ code with the C compiler. This works with gcc and intel but fails
+  # with at least PGI/NVHPC compiler. Hence, use C++ compiler if PGI/NVHPC compiler is used.
+  if(NRN_HAVE_NVHPC_COMPILER)
+    list(APPEND extra_env "CC=${CMAKE_CXX_COMPILER}" "CXX=${CMAKE_CXX_COMPILER}")
+  else()
+    list(APPEND extra_env "CC=${CMAKE_C_COMPILER}" "CXX=${CMAKE_CXX_COMPILER}")
+  endif()
+
   if(NRN_COMPILE_FLAGS)
     list(APPEND extra_env "CFLAGS=${NRN_COMPILE_FLAGS_STRING}")
   endif()
@@ -162,6 +169,8 @@ if(NRN_ENABLE_MODULE_INSTALL)
   list(APPEND NRN_SETUP_PY_BUILD_OPTIONS ${CMAKE_BINARY_DIR})
   if(NOT NRN_ENABLE_RX3D)
     list(APPEND NRN_SETUP_PY_BUILD_OPTIONS "--disable-rx3d")
+  else()
+    list(APPEND NRN_SETUP_PY_BUILD_OPTIONS "--rx3d-opt-level" ${NRN_RX3D_OPT_LEVEL})
   endif()
   if(MINGW)
     list(APPEND NRN_SETUP_PY_BUILD_OPTIONS "--compiler=mingw32")
@@ -185,6 +194,10 @@ if(NRN_ENABLE_MODULE_INSTALL)
   if(MINGW)
     list(APPEND NRN_SETUP_PY_BUILD_EXT_OPTIONS "--define=MS_WIN64")
   endif()
+  # force rebuild of cython generated files for PYTHON_DYNAMIC
+  if(NRN_ENABLE_PYTHON_DYNAMIC)
+    list(APPEND NRN_SETUP_PY_BUILD_EXT_OPTIONS "--force")
+  endif()
 
   # Build python module
   foreach(pyexe ${NRN_PYTHON_EXE_LIST})
@@ -200,6 +213,6 @@ if(NRN_ENABLE_MODULE_INSTALL)
       ${NRN_SETUP_PY_BUILD_OPTIONS} ${NRN_SETUP_PY_BUILD_EXT_OPTIONS}")
   endforeach(pyexe)
 
-  add_dependencies(hoc_module nrniv_lib ${nrnpython_lib_list})
+  add_dependencies(hoc_module nrniv_lib rxdmath ${nrnpython_lib_list})
   install(DIRECTORY ${NRN_PYTHON_BUILD_LIB} DESTINATION lib)
 endif()

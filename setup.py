@@ -7,17 +7,14 @@ from collections import defaultdict
 import logging
 
 logging.basicConfig(level=logging.INFO)
-from shutil import copytree
-
-try:
-    from packaging.version import Version, parse as parse_version  # may fail with mingw
-except ImportError:
-    from pip._vendor.packaging.version import Version, parse as parse_version
-
+from shutil import copytree, which
 from setuptools import Command, Extension
 from setuptools import setup
 
 sys.setrecursionlimit(1500)
+
+logging.info("setup.py called with:" + " ".join(sys.argv))
+
 
 logging.info("setup.py called with:" + " ".join(sys.argv))
 
@@ -30,46 +27,10 @@ class Components:
     CORENRN = False  # still early support
     GPU = False  # still early support
 
-
-# Main source of the version. Dont rename, used by Cmake
-try:
-    # github actions somehow fails with check_output and python3
-
-    # Official Versioning shall rely on annotated tags (don't use `--tags` or `--all`)
-    # (please refer to NEURON SCM documentation)
-    v = (
-        subprocess.run(["git", "describe"], stdout=subprocess.PIPE)
-        .stdout.strip()
-        .decode()
-    )
-
-    # make git describe output PEP440 compliant
-    __version__ = v.replace("-", ".", 1).replace("-", "+", 1)
-
-    # if version is not a valid PEP440 version, then create a bogus version
-    # that will be used only for development purposes which appends the commit hash
-    try:
-        version_obj = parse_version(__version__)
-    except ValueError:
-        __version__ = "0.0.dev0+g" + (
-            subprocess.run(
-                ["git", "rev-parse", "--short", "HEAD"], stdout=subprocess.PIPE
-            )
-            .stdout.strip()
-            .decode()
-        )
-
-    # allow to override version during development/testing
-    if "NEURON_WHEEL_VERSION" in os.environ:
-        __version__ = os.environ["NEURON_WHEEL_VERSION"]
-
-except Exception as e:
-    raise RuntimeError("Could not get version from Git repo : " + str(e))
-
 # Check if we've got --cmake-build-dir path that will be used to build extensions only
 # and not to build NEURON wheels.
 just_extensions = False
-cmake_build_dir = None
+cmake_build_dir = "build/cmake_install"  # default for wheels
 if "--cmake-build-dir" in sys.argv:
     cmake_build_dir = sys.argv[sys.argv.index("--cmake-build-dir") + 1]
     sys.argv.remove("--cmake-build-dir")
@@ -103,6 +64,14 @@ if "--cmake-build-dir" in sys.argv:
             )
         )
     just_extensions = True
+
+# Check for RX3D Optimization Level
+rx3d_opt_level = "-O0"
+if "--rx3d-opt-level" in sys.argv:
+    rx3d_opt_level_arg = sys.argv[sys.argv.index("--rx3d-opt-level") + 1]
+    rx3d_opt_level = "-O{}".format(int(rx3d_opt_level_arg))
+    sys.argv.remove("--rx3d-opt-level")
+    sys.argv.remove(rx3d_opt_level_arg)
 
 # If NRN_ENABLE_PYTHON_DYNAMIC is ON, we will build the wheel without the nrnpython library
 without_nrnpython = False
@@ -181,11 +150,7 @@ class CMakeAugmentedExtension(Extension):
         Extension.__init__(self, name, sources, **kw)
         self.sourcedir = os.path.abspath(cmake_proj_dir)
         self.cmake_flags = cmake_flags or []
-        self.cmake_install_prefix = (
-            os.path.abspath("build/cmake_install")
-            if not just_extensions
-            else cmake_build_dir
-        )
+        self.cmake_install_prefix = os.path.abspath(cmake_build_dir)
         self.cmake_collect_dirs = cmake_collect_dirs or []
         self.cmake_install_python_files = cmake_install_python_files
         self.cmake_done = False
@@ -314,18 +279,18 @@ class CMakeAugmentedBuilder(build_ext):
                 # RTD will call sphinx for us. We just need notebooks and doxygen
                 if os.environ.get("READTHEDOCS"):
                     subprocess.check_call(
-                        ["cmake", "--build", ".", "--target", "notebooks"],
+                        [cmake, "--build", ".", "--target", "notebooks"],
                         cwd=self.build_temp,
                         env=env,
                     )
                     subprocess.check_call(
-                        ["cmake", "--build", ".", "--target", "doxygen"],
+                        [cmake, "--build", ".", "--target", "doxygen"],
                         cwd=self.build_temp,
                         env=env,
                     )
                 else:
                     subprocess.check_call(
-                        ["cmake", "--build", ".", "--target", "docs"],
+                        [cmake, "--build", ".", "--target", "docs"],
                         cwd=self.build_temp,
                         env=env,
                     )
@@ -376,18 +341,11 @@ class CMakeAugmentedBuilder(build_ext):
 
     @staticmethod
     def _find_cmake():
-        for candidate in ["cmake", "cmake3"]:
-            try:
-                out = subprocess.check_output([candidate, "--version"])
-                cmake_version = Version(
-                    re.search(r"version\s*([\d.]+)", out.decode()).group(1)
-                )
-                if cmake_version >= Version("3.15.0"):
-                    return candidate
-            except OSError:
-                pass
+        cmake_cmd = which("cmake") or which("cmake3")
+        if not cmake_cmd:
+            raise RuntimeError("Project requires CMake")
 
-        raise RuntimeError("Project requires CMake >=3.15.0")
+        return cmake_cmd
 
 
 class Docs(Command):
@@ -442,9 +400,7 @@ def setup_package():
 
     extension_common_params = defaultdict(
         list,
-        library_dirs=["build/cmake_install/lib"]
-        if not just_extensions
-        else [os.path.join(cmake_build_dir, "lib")],
+        library_dirs=[os.path.join(cmake_build_dir, "lib")],
         libraries=ext_common_libraries,
         language="c++",
     )
@@ -493,13 +449,9 @@ def setup_package():
             extra_compile_args=extra_compile_args + ["-std=c++17"],
             extra_link_args=extra_link_args
             + [
-                # use relative rpath to .data/lib
-                "-Wl,-rpath,{}".format(REL_RPATH + "/.data/lib/")
-            ]
-            if not just_extensions
-            else [
-                "-Wl,-rpath,{}/../../".format(REL_RPATH),
-                # "-Wl,-rpath,%s" % ivlibdir
+                "-Wl,-rpath,{}{}".format(
+                    REL_RPATH, "/../../" if just_extensions else "/.data/lib/"
+                )
             ],
             **extension_common_params,
         )
@@ -527,7 +479,7 @@ def setup_package():
                 # Cython files take a long time to compile with O2 but this
                 # is a distribution...
                 extra_compile_args=extra_compile_args
-                + ["-O2" if "NRN_BUILD_FOR_UPLOAD" in os.environ else "-O0"],
+                + ["-O2" if "NRN_BUILD_FOR_UPLOAD" in os.environ else rx3d_opt_level],
                 extra_link_args=extra_link_args
                 + ["-Wl,-rpath,{}".format(REL_RPATH + "/../../.data/lib/")],
             )
@@ -573,7 +525,6 @@ def setup_package():
 
     setup(
         name=package_name,
-        version=__version__,
         package_dir={"": NRN_PY_ROOT},
         packages=py_packages,
         package_data={"neuron": ["*.dat"]},
@@ -583,10 +534,18 @@ def setup_package():
             for f in os.listdir(NRN_PY_SCRIPTS)
             if f[0] != "_"
         ],
+        use_scm_version={
+            "local_scheme": "no-local-version"
+            if os.getenv("NRN_NIGHTLY_UPLOAD", False) == "true"
+            else "node-and-date"
+        },
         cmdclass=dict(build_ext=CMakeAugmentedBuilder, docs=Docs),
-        install_requires=["numpy>=1.9.3"] + maybe_patchelf,
+        install_requires=["numpy>=1.9.3", "packaging"] + maybe_patchelf,
         tests_require=["flake8", "pytest"],
-        setup_requires=["wheel"] + maybe_docs + maybe_test_runner + maybe_rxd_reqs,
+        setup_requires=["wheel", "setuptools_scm"]
+        + maybe_docs
+        + maybe_test_runner
+        + maybe_rxd_reqs,
         dependency_links=[],
     )
 
