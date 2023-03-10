@@ -11,10 +11,6 @@ from shutil import copytree, which
 from setuptools import Command, Extension
 from setuptools import setup
 
-sys.setrecursionlimit(1500)
-
-logging.info("setup.py called with:" + " ".join(sys.argv))
-
 
 logging.info("setup.py called with:" + " ".join(sys.argv))
 
@@ -26,6 +22,7 @@ class Components:
     MUSIC = False  # still early support
     CORENRN = False  # still early support
     GPU = False  # still early support
+
 
 # Check if we've got --cmake-build-dir path that will be used to build extensions only
 # and not to build NEURON wheels.
